@@ -154,16 +154,7 @@ var Paul_Pio = function (prop) {
 
             // 返回顶部
             elements.totop.onclick = function () {
-                var timer = setInterval(function () {
-                    //获取滚动条的滚动高度
-                    var osTop = document.documentElement.scrollTop || document.body.scrollTop;
-                    //用于设置速度差，产生缓动的效果
-                    var speed = Math.floor(-osTop / 6);
-                    document.documentElement.scrollTop = document.body.scrollTop = osTop + speed;
-                    if (osTop == 0) {
-                        clearInterval(timer);
-                    }
-                }, 30);
+                document.documentElement.scrollTop = document.body.scrollTop = 0;
             };
             elements.totop.onmouseover = function () {
                 modules.render("点击这里回到顶部！");
