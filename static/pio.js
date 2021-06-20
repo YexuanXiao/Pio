@@ -154,7 +154,14 @@ var Paul_Pio = function (prop) {
 
             // 返回顶部
             elements.totop.onclick = function () {
+                var element = document.querySelector('html');
+                var a = element.style.scrollBehavior;
+                var b = document.body.style.scrollBehavior;
+                elemrnt.style.scrollBehavior='smooth';
+                b.style.scrollBehavior='';
                 document.documentElement.scrollTop = document.body.scrollTop = 0;
+                element.style.scrollBehavior = a;
+                element.body.style.scrollBehavior = b;
             };
             elements.totop.onmouseover = function () {
                 modules.render("点击这里回到顶部！");
@@ -220,17 +227,17 @@ var Paul_Pio = function (prop) {
                         if(t.type === "read"){
                             e[j].onmouseover = function () {
                                 modules.render("想阅读 %t 吗？".replace(/%t/, "“" + this.innerText.substring(0, 30) + "”"));
-                            }
+                            };
                         }
                         else if(t.type === "link"){
                             e[j].onmouseover = function () {
                                 modules.render("想了解一下 %t 吗？".replace(/%t/, "“" + this.innerText.substring(0, 30) + "”"));
-                            }
+                            };
                         }
                         else if(t.text){
                             e[j].onmouseover = function () {
                                 modules.render(t.text.substring(0, 30));
-                            }
+                            };
                         }
                     }
                 }
@@ -307,8 +314,8 @@ var Paul_Pio = function (prop) {
             current.body.classList.remove("hidden");
             localStorage.setItem("posterGirl", 1);
             that.init();
-        }
-    }
+        };
+    };
 
     localStorage.getItem("posterGirl") == 0 ? this.initHidden() : this.init();
 };
