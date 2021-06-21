@@ -2,13 +2,15 @@
 
 # Pio Plugin
 # By: Dreamer-Paul
-# Last Update: 2021.5.6
+# Last Update: 2021.6.21
 
 一个支持更换 Live2D 模型的 JS 插件
 
 本代码为奇趣保罗原创，并遵守 GPL 2.0 开源协议。欢迎访问我的博客：https://paugram.com
 
 ---- */
+
+/* 萧叶轩修改版，项目地址：https://github.com/YexuanXiao/Pio */
 
 var Paul_Pio = function (prop) {
     var that = this

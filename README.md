@@ -65,3 +65,6 @@ var pio = new Paul_Pio({
 为了简化代码， **值为 true 时是不显示按钮**，并且缺省时为显示按钮。
 
 魔改版基本兼容原版，不需要过多配置。
+
+
+傻瓜化使用方法可以参考 [给你的博客添加一个看板娘](https://mysteriouspreserve.com/blog/2021/06/14/Site-Live2D-Wiget/)
