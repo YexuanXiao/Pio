@@ -105,7 +105,10 @@ var Paul_Pio = function (prop) {
                 var referrer = document.createElement('a')
                 referrer.href = document.referrer
                 modules.render(prop.content.referer ? (prop.content.referer.replace(/%t/, '“' + referrer.hostname + '”')) : ('欢迎来自 “' + referrer.hostname + '” 的朋友！'))
-            } else if (prop.tips) {
+            } else {
+                modules.render(prop.content.welcome || '欢迎来到' + document.location.hostname + '!')
+            }
+            if (prop.tips) {
                 this.t = setTimeout(() => {
                     var text, date = new Date()
                     date.setHours(date.getHours() + 1)
@@ -139,14 +142,12 @@ var Paul_Pio = function (prop) {
                             try {
                                 if (!range || range > 7 || range < 0) throw '发生了不可能发生的事呢！'
                             } catch (err) {
-                                console.log(err + 'hour 为 ' + range)
+                                console.log(err + 'range 为 ' + range)
                             }
                     }
                     modules.render(text)
                     clearTimeout(this.t)
                 }, Math.round(Math.random() * 25 + 10) * 1000)
-            } else {
-                modules.render(prop.content.welcome || '欢迎来到' + document.location.hostname + '!')
             }
         },
 
@@ -165,7 +166,6 @@ var Paul_Pio = function (prop) {
                     modules.render(prop.content.alternative || ['打起精神来！', '要不要坐下来喝杯咖啡？', '无聊的时候试试读一本书？'])
                     clearTimeout(t)
                 }
-                callback();
                 a = a * 1.5
                 time = Math.round(Math.random() * 60) * 1000 * a;
                 t = setTimeout(callback, time);
@@ -246,7 +246,7 @@ var Paul_Pio = function (prop) {
                     try {
                         new Function('return ' + prop.night)();
                     } catch (err) {
-                        console.log(prop.night + ' is not a correct function call!')
+                        console.log(prop.night + ' 不是一个有效的函数调用！')
                     }
                 }
                 elements.night.onmouseover = () => {
