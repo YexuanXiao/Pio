@@ -4,6 +4,12 @@
 
 本插件不存在任何依赖的样式和库，在后续版本当中我会逐渐实现一些有趣的功能。
 
+# 注意，本项目为 fork 项目，原版参考 fork 来源
+
+本项目 JavaScript 部分替换自 [Pio-ts](https://github.com/YexuanXiao/Pio)
+
+并更改了 l2d.js 和 pio.css 以修复一些问题，并支持额外的功能，详情参考 [Pio-ts](https://github.com/YexuanXiao/Pio)
+
 ## 使用方法
 
 > 奇趣保罗自己搭建的 [梦象](https://mx.paul.ren) 资源站上提供了较多可用于本插件的模型资源，如果你也想在这里提交自己的原创作品，不妨现在就和我 [取得联系](https://paul.ren) 吧！

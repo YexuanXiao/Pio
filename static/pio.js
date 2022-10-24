@@ -1,334 +1,386 @@
-/* ----
-
-# Pio Plugin
-# By: Dreamer-Paul
-# Last Update: 2022.8.12
-
-一个支持更换 Live2D 模型的 JS 插件
-
-本代码为奇趣保罗原创，并遵守 GPL 2.0 开源协议。欢迎访问我的博客：https://paugram.com
-
----- */
-
-var Paul_Pio = function (prop) {
-    const that = this;
-
-    const current = {
-        idol: 0,
-        timeout: undefined,
-        menu: document.querySelector(".pio-container .pio-action"),
-        canvas: document.getElementById("pio"),
-        body: document.querySelector(".pio-container"),
-        root: document.location.protocol + "//" + document.location.hostname + "/"
-    };
-
-    // 工具通用函数
-    const tools = {
-        // 创建内容
-        create: (tag, options) => {
-            const el = document.createElement(tag);
-            options.class && (el.className = options.class);
-
-            return el;
-        },
-        // 随机内容
-        rand: (arr) => {
-            return arr[Math.floor(Math.random() * arr.length + 1) - 1];
-        },
-        // 是否为移动设备
-        isMobile: () => {
-            let ua = window.navigator.userAgent.toLowerCase();
-            ua = ua.indexOf("mobile") || ua.indexOf("android") || ua.indexOf("ios");
-
-            return window.innerWidth < 500 || ua !== -1;
+class Pio {
+    idol;
+    current;
+    timer;
+    prop;
+    dialog;
+    constructor(prop) {
+        this.prop = prop;
+        const length = prop.model.length;
+        const num = parseInt(localStorage.getItem('pio-num'));
+        if (Number.isFinite(num) && num < length) {
+            this.idol = num;
+        }
+        else {
+            this.idol = 0;
+            localStorage.setItem('pio-num', '0');
+        }
+        const body = document.querySelector('.pio-container');
+        const menu = document.querySelector('.pio-container .pio-action');
+        const canvas = document.getElementById('pio');
+        if (!menu || !canvas || !body)
+            throw new Error("Pio Elements don't exist!");
+        const state = localStorage.getItem('pio-state') === 'false';
+        this.current = {
+            state: state ? false : true,
+            menu: menu,
+            canvas: canvas,
+            body: body,
+            root: document.location.hostname
+        };
+        localStorage.setItem('pio-state', String(this.current.state));
+        this.dialog = document.createElement('div');
+        this.dialog.className = 'pio-dialog';
+        body.appendChild(this.dialog);
+        this.Init();
+    }
+    static CreateContainerToBody(width, height) {
+        const container = document.createElement('div');
+        container.className = 'pio-container left';
+        document.body.appendChild(container);
+        const menu = document.createElement('div');
+        menu.classList.add('pio-action');
+        container.appendChild(menu);
+        const canvas = document.createElement('canvas');
+        canvas.id = 'pio';
+        container.appendChild(canvas);
+        const ratio = window.devicePixelRatio;
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        const style = canvas.style;
+        style.width = `${width}px`;
+        style.height = `${height}px`;
+    }
+    SetNextIdol() {
+        const next = ++this.idol;
+        if (next < this.prop.model.length) {
+            this.idol = next;
+        }
+        else {
+            this.idol = 0;
+        }
+        localStorage.setItem('pio-num', String(this.idol));
+        this.Show();
+    }
+    static GetString(message) {
+        let text;
+        if (typeof message === 'string') {
+            text = message;
+        }
+        else {
+            const num = Math.floor(Math.random() * message.length);
+            text = message[num];
+        }
+        if (text.length > 50) {
+            return text.substring(0, 51);
+        }
+        else if (text.length === 0) {
+            console.info('Pio.Message 获得了一个空字符串，请检查配置。');
+            return '悄悄的告诉你，我有一个秘密。';
+        }
+        else {
+            return text;
         }
     }
-
-    const elements = {
-        home: tools.create("span", { class: "pio-home" }),
-        skin: tools.create("span", { class: "pio-skin" }),
-        info: tools.create("span", { class: "pio-info" }),
-        night: tools.create("span", { class: "pio-night" }),
-        close: tools.create("span", { class: "pio-close" }),
-
-        dialog: tools.create("div", { class: "pio-dialog" }),
-        show: tools.create("div", { class: "pio-show" })
-    };
-
-    current.body.appendChild(elements.dialog);
-    current.body.appendChild(elements.show);
-
-    /* - 方法 */
-    const modules = {
-        // 更换模型
-        idol: () => {
-            current.idol < (prop.model.length - 1) ? current.idol++ : current.idol = 0;
-
-            return current.idol;
-        },
-        // 创建对话框方法
-        message: (text, options = {}) => {
-            const { dialog } = elements;
-
-            if (text.constructor === Array) {
-                dialog.innerText = tools.rand(text);
-            }
-            else if (text.constructor === String) {
-                dialog[options.html ? "innerHTML" : "innerText"] = text;
-            }
-            else {
-                dialog.innerText = "输入内容出现问题了 X_X";
-            }
-
-            dialog.classList.add("active");
-
-            current.timeout = clearTimeout(current.timeout) || undefined;
-            current.timeout = setTimeout(() => {
-                dialog.classList.remove("active");
-            }, options.time || 3000);
-        },
-        // 移除方法
-        destroy: () => {
-            that.initHidden();
-            localStorage.setItem("posterGirl", "0");
+    Message(message, time = (Math.floor(10 + Math.random() * (20 - 10 + 1)) * 1000)) {
+        this.dialog.textContent = Pio.GetString(message);
+        this.dialog.classList.add('active');
+        if (this.timer !== undefined)
+            clearTimeout(this.timer);
+        this.timer = setTimeout(() => {
+            this.dialog.classList.remove('active');
+            this.timer = undefined;
+        }, time);
+    }
+    Show() {
+        this.current.body.classList.remove('hidden');
+        this.current.state = true;
+        localStorage.setItem('pio-state', 'true');
+        loadlive2d('pio', this.prop.model[this.idol]);
+    }
+    Hide() {
+        const current = this.current;
+        current.body.classList.add('hidden');
+        current.state = false;
+        localStorage.setItem('pio-state', 'false');
+        const show = document.createElement('div');
+        show.className = 'pio-show';
+        current.body.appendChild(show);
+        show.addEventListener('click', () => {
+            this.Show();
+            show.parentElement.removeChild(show);
+        });
+        if (this.prop.mode === 'draggable') {
+            current.body.style.top = '';
+            current.body.style.left = '';
+            current.body.style.bottom = '';
         }
-    };
-
-    this.destroy = modules.destroy;
-    this.message = modules.message;
-
-    /* - 提示操作 */
-    const action = {
-        // 欢迎
-        welcome: () => {
-            if (document.referrer && document.referrer.includes(current.root)) {
-                const referrer = document.createElement("a");
-                referrer.href = document.referrer;
-
-                if (prop.content.referer) {
-                    modules.message(prop.content.referer.replace(/%t/, `“${referrer.hostname}”`));
+    }
+    static IsMobile() {
+        return window.matchMedia('(max-width: 768px').matches;
+    }
+    Welcome() {
+        const referrer = document.referrer.split('/')[2];
+        const head1 = document.querySelector('h1');
+        if (referrer !== undefined && referrer !== this.current.root) {
+            this.Message(this.prop.content.referer ? (this.prop.content.referer.replace(/%t/, referrer)) : (`欢迎来自 ${referrer} 的朋友！`));
+        }
+        else if (referrer === undefined) {
+            this.Message(this.prop.content.welcome || `欢迎来到 ${this.current.root}!`);
+        }
+        else if (head1 !== null) {
+            this.Message(`欢迎阅读 “${head1.innerText}”！`);
+        }
+        if (this.prop.tips) {
+            const time = Math.floor(Math.random() * 10 + 25) * 1000;
+            setTimeout(() => {
+                const date = new Date();
+                const range = Math.floor(date.getHours() / 3);
+                let text;
+                switch (range) {
+                    case 0:
+                        text = '已经这么晚了呀，早点休息吧，晚安~';
+                        break;
+                    case 1:
+                        text = '你是夜猫子吗？这么晚还不睡觉，明天起的来嘛';
+                        break;
+                    case 2:
+                        text = '早上好！现在是否元气满满呢？';
+                        break;
+                    case 3:
+                        text = '上午好！不要久坐，多起来走动走动哦！';
+                        break;
+                    case 4:
+                        text = '中午了，该休息了，现在是午餐时间！';
+                        break;
+                    case 5:
+                        text = '午后很容易犯困呢，今天的目标完成了吗？';
+                        break;
+                    case 6:
+                        text = '傍晚了！窗外夕阳的景色很美丽呢，今天是否是个好天气呢';
+                        break;
+                    case 7:
+                        text = '晚上好，今天过得怎么样？';
+                        break;
+                    default:
+                        text = '发生了不可能发生的事呢！你生活在火星吗？';
                 }
-                else {
-                    modules.message(`欢迎来自 “${referrer.hostname}” 的朋友！`);
-                }
+                this.Message(text);
+            }, time);
+        }
+    }
+    Touch() {
+        this.current.canvas.addEventListener('click', () => {
+            this.Message(this.prop.content.touch || ['你在干什么？', '再摸我就报警了！', 'HENTAI!', '不可以这样欺负我啦！']);
+        });
+    }
+    Alternate() {
+        if (this.prop.tips === undefined)
+            return;
+        const period = 1.5;
+        let time = 2 * 60 * 1000;
+        let previous = new Date();
+        setInterval(() => {
+            const now = new Date();
+            if (now > previous) {
+                previous = new Date(now.getTime() + time);
+                setTimeout(() => {
+                    this.Message(this.prop.content.alternate || ['打起精神来！', '要不要坐下来喝杯咖啡？', '无聊的时候试试读一本书？']);
+                }, time);
+                time *= period;
             }
-            else if (prop.tips) {
-                let text, hour = new Date().getHours();
-
-                if (hour > 22 || hour <= 5) {
-                    text = "你是夜猫子呀？这么晚还不睡觉，明天起的来嘛";
-                }
-                else if (hour > 5 && hour <= 8) {
-                    text = "早上好！";
-                }
-                else if (hour > 8 && hour <= 11) {
-                    text = "上午好！工作顺利嘛，不要久坐，多起来走动走动哦！";
-                }
-                else if (hour > 11 && hour <= 14) {
-                    text = "中午了，工作了一个上午，现在是午餐时间！";
-                }
-                else if (hour > 14 && hour <= 17) {
-                    text = "午后很容易犯困呢，今天的运动目标完成了吗？";
-                }
-                else if (hour > 17 && hour <= 19) {
-                    text = "傍晚了！窗外夕阳的景色很美丽呢，最美不过夕阳红~";
-                }
-                else if (hour > 19 && hour <= 21) {
-                    text = "晚上好，今天过得怎么样？";
-                }
-                else if (hour > 21 && hour <= 23) {
-                    text = "已经这么晚了呀，早点休息吧，晚安~";
-                }
-                else{
-                    text = "奇趣保罗说：这个是无法被触发的吧，哈哈";
-                }
-
-                modules.message(text);
-            }
-            else {
-                modules.message(prop.content.welcome || "欢迎来到本站！");
-            }
-        },
-        // 触摸
-        touch: () => {
-            current.canvas.onclick = () => {
-                modules.message(prop.content.touch || ["你在干什么？", "再摸我就报警了！", "HENTAI!", "不可以这样欺负我啦！"]);
-            };
-        },
-        // 右侧按钮
-        buttons: () => {
-            // 返回首页
-            elements.home.onclick = () => {
-                location.href = current.root;
-            };
-            elements.home.onmouseover = () => {
-                modules.message(prop.content.home || "点击这里回到首页！");
-            };
-            current.menu.appendChild(elements.home);
-
-            // 更换模型
-            if (prop.model && prop.model.length > 1) {
-                elements.skin.onclick = () => {
-                    loadlive2d("pio", prop.model[modules.idol()]);
-
-                    prop.content.skin && modules.message(prop.content.skin[1] || "新衣服真漂亮~");
-                };
-                elements.skin.onmouseover = () => {
-                    prop.content.skin && modules.message(prop.content.skin[0] || "想看看我的新衣服吗？");
-                };
-                current.menu.appendChild(elements.skin);
-            }
-
-            // 关于我
-            elements.info.onclick = () => {
-                window.open(prop.content.link || "https://paugram.com/coding/add-poster-girl-with-plugin.html");
-            };
-            elements.info.onmouseover = () => {
-                modules.message("想了解更多关于我的信息吗？");
-            };
-            current.menu.appendChild(elements.info);
-
-            // 夜间模式
-            if (prop.night) {
-                elements.night.onclick = () => {
-                    typeof prop.night === "function" ? prop.night() : eval(prop.night);
-                };
-                elements.night.onmouseover = () => {
-                    modules.message("夜间点击这里可以保护眼睛呢");
-                };
-                current.menu.appendChild(elements.night);
-            }
-
-            // 关闭看板娘
-            elements.close.onclick = () => {
-                modules.destroy();
-            };
-            elements.close.onmouseover = () => {
-                modules.message(prop.content.close || "QWQ 下次再见吧~");
-            };
-            current.menu.appendChild(elements.close);
-        },
-        // 自定义选择器
-        custom: () => {
-            prop.content.custom.forEach((item) => {
-                const el = document.querySelectorAll(item.selector);
-
-                if (!el.length) return;
-
-                for (let i = 0; i < el.length; i++) {
-                    if (item.type === "read") {
-                        el[i].onmouseover = (ev) => {
-                            const text = ev.currentTarget.title || ev.currentTarget.innerText;
-                            modules.message("想阅读 %t 吗？".replace(/%t/, "“" + text + "”"));
-                        }
-                    }
-                    else if (item.type === "link") {
-                        el[i].onmouseover = (ev) => {
-                            const text = ev.currentTarget.title || ev.currentTarget.innerText;
-                            modules.message("想了解一下 %t 吗？".replace(/%t/, "“" + text + "”"));
-                        }
-                    }
-                    else if (item.text) {
-                        el[i].onmouseover = () => {
-                            modules.message(t.text);
-                        }
-                    }
-                }
+        }, time);
+    }
+    Menu() {
+        const prop = this.prop;
+        const menu = this.current.menu;
+        if (prop.button === undefined)
+            prop.button = {};
+        if (this.prop.model.length > 1 && prop.button.skin !== false) {
+            const skin = document.createElement('span');
+            skin.className = 'pio-skin';
+            menu.appendChild(skin);
+            const [changed, want] = prop.content.skin || ['新衣服真漂亮~', '想看看我的新衣服吗？'];
+            skin.addEventListener('click', () => {
+                this.SetNextIdol();
+                this.Message(changed);
+            });
+            skin.addEventListener('mouseover', () => {
+                this.Message(want);
             });
         }
-    };
-
-    /* - 运行 */
-    const begin = {
-        static: () => {
-            current.body.classList.add("static");
-        },
-        fixed: () => {
-            action.touch();
-            action.buttons();
-        },
-        draggable: () => {
-            action.touch();
-            action.buttons();
-
-            const body = current.body;
-
-            const location = {
-                x: 0,
-                y: 0
-            };
-
-            const mousedown = (ev) => {
-                const { offsetLeft, offsetTop } = ev.currentTarget;
-
-                location.x = ev.clientX - offsetLeft;
-                location.y = ev.clientY - offsetTop;
-
-                document.addEventListener("mousemove", mousemove);
-                document.addEventListener("mouseup", mouseup);
-            };
-
-            const mousemove = (ev) => {
-                body.classList.add("active");
-                body.classList.remove("right");
-
-                body.style.left = (ev.clientX - location.x) + "px";
-                body.style.top  = (ev.clientY - location.y) + "px";
-                body.style.bottom = "auto";
-            }
-
-            const mouseup = () => {
-                body.classList.remove("active");
-                document.removeEventListener("mousemove", mousemove);
-            }
-
-            body.onmousedown = mousedown;
+        if (prop.button.home !== false) {
+            const home = document.createElement('span');
+            home.className = 'pio-home';
+            menu.appendChild(home);
+            home.addEventListener('click', () => {
+                location.href = this.current.root;
+            });
+            home.addEventListener('mouseover', () => {
+                this.Message(prop.content.home || '点击这里回到首页！');
+            });
         }
-    };
-
-    // 运行
-    this.init = (noModel) => {
-        // 未隐藏 + 非手机版，出现操作功能
-        if (!(prop.hidden && tools.isMobile())) {
-            if (!noModel) {
-                action.welcome();
-                loadlive2d("pio", prop.model[0]);
-            }
-
-            switch (prop.mode) {
-                case "static": begin.static(); break;
-                case "fixed":  begin.fixed(); break;
-                case "draggable": begin.draggable(); break;
-            }
-
-            prop.content.custom && action.custom();
+        if (prop.button.totop !== false) {
+            const totop = document.createElement('span');
+            totop.className = 'pio-totop';
+            menu.appendChild(totop);
+            totop.addEventListener('click', () => {
+                const element = document.querySelector('html');
+                const pre_behave = element.style.scrollBehavior;
+                let current = document.body.style.scrollBehavior;
+                element.style.scrollBehavior = 'smooth';
+                current = '';
+                document.documentElement.scrollTop = document.body.scrollTop = 0;
+                element.style.scrollBehavior = pre_behave;
+                document.body.style.scrollBehavior = current;
+            });
+            totop.addEventListener('mouseover', () => {
+                this.Message('点击这里滚动到顶部！');
+            });
         }
-    };
-
-    // 隐藏状态
-    this.initHidden = () => {
-        // ! 清除预设好的间距
-        if (prop.mode === "draggable") {
-            current.body.style.top = null;
-            current.body.style.left = null;
-            current.body.style.bottom = null;
+        if (prop.button.night !== false && prop.night) {
+            const night = document.createElement('span');
+            night.className = 'pio-night';
+            menu.appendChild(night);
+            night.addEventListener('click', () => {
+                if (typeof prop.night === 'function') {
+                    prop.night();
+                }
+                else {
+                    new Function('return ' + prop.night)();
+                }
+            });
+            night.addEventListener('mouseover', () => {
+                this.Message('夜间点击这里可以保护眼睛呢~');
+            });
         }
-
-        current.body.classList.add("hidden");
-        elements.dialog.classList.remove("active");
-
-        elements.show.onclick = () => {
-            current.body.classList.remove("hidden");
-            localStorage.setItem("posterGirl", "1");
-
-            that.init();
+        if (prop.button.close !== false) {
+            const close = document.createElement('span');
+            close.className = 'pio-close';
+            menu.appendChild(close);
+            close.addEventListener('click', () => {
+                this.Hide();
+            });
+            close.addEventListener('mouseover', () => {
+                this.Message(prop.content.close || 'QWQ 下次再见吧~');
+            });
+        }
+        if (prop.button.info !== false) {
+            const info = document.createElement('span');
+            info.className = 'pio-info';
+            menu.appendChild(info);
+            info.addEventListener('click', () => {
+                window.open(prop.content.link || 'https://github.com/YexuanXiao/Pio-ts');
+            });
+            info.addEventListener('mouseover', () => {
+                this.Message('想了解更多关于我的信息吗？');
+            });
         }
     }
+    Custom() {
+        if (this.prop.content.custom === undefined)
+            return;
+        for (const items of this.prop.content.custom) {
+            const nodes = document.querySelectorAll(items.selector);
+            for (const node of nodes) {
+                let text = '';
+                if (items.type === 'read') {
+                    text = node.innerText.substring(0, 42);
+                    text = text.length !== 0 ? `想阅读 “${text}” 吗？` : text;
+                }
+                else if (items.type === 'link') {
+                    text = (node.title || node.innerText).substring(0, 40);
+                    text = text.length !== 0 ? `想了解一下 “${text}” 吗？` : text;
+                }
+                else if (items.text !== undefined) {
+                    text = items.text.substring(0, 51);
+                }
+                node.addEventListener('mouseover', () => {
+                    this.Message(text);
+                });
+            }
+        }
+    }
+    SetMode() {
+        if (this.prop.mode === 'fixed') {
+            this.Alternate();
+            this.Menu();
+            this.Touch();
+        }
+        else if (this.prop.mode === 'draggable' && !Pio.IsMobile()) {
+            this.Alternate();
+            this.Menu();
+            this.Touch();
+            const body = this.current.body;
+            body.addEventListener('mousedown', (event) => {
+                const location = {
+                    x: event.clientX - body.offsetLeft,
+                    y: event.clientY - body.offsetTop
+                };
+                const move = (event) => {
+                    body.classList.add('active');
+                    body.classList.remove('right');
+                    body.style.left = `${(event.clientX - location.x)}px`;
+                    body.style.top = `${(event.clientY - location.x)}px`;
+                    body.style.bottom = 'auto';
+                };
+                document.addEventListener('mousemove', move);
+                document.addEventListener('mouseup', () => {
+                    body.classList.remove('active');
+                    document.removeEventListener('mousemove', move);
+                });
+            });
+        }
+        else {
+            this.current.body.classList.add('static');
+        }
+    }
+    Listen() {
+        let auto = true;
+        let observer = new ResizeObserver(() => {
+            if (this.current.state === true && Pio.IsMobile() && auto === true) {
+                this.Hide();
+                auto = false;
+            }
+            else if (!Pio.IsMobile() && auto === false) {
+                this.Show();
+                auto = true;
+            }
+        });
+        const footer = document.body.querySelector('footer');
+        const article = document.body.querySelector('article');
+        observer.observe(footer || article || document.body);
+    }
+    Init() {
+        this.SetMode();
+        this.Custom();
+        this.Listen();
+        if (this.current.state === false) {
+            this.Hide();
+            return;
+        }
+        const mobile = Pio.IsMobile();
+        if (!mobile) {
+            this.Welcome();
+            loadlive2d('pio', this.prop.model[this.idol]);
+            return;
+        }
+        else if (this.prop.hidden === false && mobile) {
+            this.Welcome();
+            loadlive2d('pio', this.prop.model[this.idol]);
+            return;
+        }
+        this.Hide();
+    }
+    init = this.Init;
+    message = this.Message;
+}
+const Paul_Pio = Pio;
 
-    localStorage.getItem("posterGirl") === "0" ? this.initHidden() : this.init();
-};
-
-// 请保留版权说明
 if (window.console && window.console.log) {
     console.log("%c Pio %c https://paugram.com ","color: #fff; margin: 1em 0; padding: 5px 0; background: #673ab7;","margin: 1em 0; padding: 5px 0; background: #efefef;");
+}
+
+if (window.console && window.console.log) {
+    console.log("%c Pio-ts %c https://github.com/YexuanXiao/Pio ","color: #fff; margin: 1em 0; padding: 5px 0; background: #673ab7;","margin: 1em 0; padding: 5px 0; background: #efefef;");
 }
